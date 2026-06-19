@@ -4,7 +4,7 @@
 #include "account.h"
 
 // In-memory global state storage for balances and nonces
-static Account account_state_pool[MAX_ACCOUNTS];
+Account account_state_pool[MAX_ACCOUNTS];
 static int total_accounts_count = 0;
 
 // Hardcoded addresses for our 5 mandatory internal tracking wallets

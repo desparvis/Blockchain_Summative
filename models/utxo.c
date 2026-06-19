@@ -4,7 +4,7 @@
 #include "utxo.h"
 
 // Global in-memory storage array tracking the state of all UTXOs
-static UTXO utxo_pool[MAX_UTXO_POOL];
+UTXO utxo_pool[MAX_UTXO_POOL];
 static int utxo_pool_count = 0;
 
 int utxo_create(const char *tx_id, unsigned int output_index, const char *owner, double amount) {

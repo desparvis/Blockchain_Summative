@@ -8,8 +8,8 @@
 #include "../models/utxo.h"
 
 // In-memory states
-static Block blockchain[MAX_CHAIN_SIZE];
-static MempoolEntry mempool[MAX_MEMPOOL_SIZE];
+Block blockchain[MAX_CHAIN_SIZE];
+MempoolEntry mempool[MAX_MEMPOOL_SIZE];
 
 static int chain_height = 0;
 static int mempool_count = 0;

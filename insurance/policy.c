@@ -3,7 +3,7 @@
 #include <string.h>
 #include "policy.h"
 
-static Policy policy_registry[MAX_POLICIES];
+Policy policy_registry[MAX_POLICIES];
 static int total_policies = 0;
 
 int policy_enroll(const char *member_id, const char *policy_id, const char *plan) {
