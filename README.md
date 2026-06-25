@@ -52,7 +52,7 @@ ALU_Blockchain_Project/
 └── insurance/
     ├── policy.c / .h           # 365-Day Plan Enrollment & Lifecycle Status Management
     └── claims.c / .h           # Premium Splitting, Claims Settlement & Fraud Rules
-```text
+```
 
 ## Module Breakdown
 
