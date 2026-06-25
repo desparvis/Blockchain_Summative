@@ -10,7 +10,6 @@ This is built specifically for the African Leadership University (ALU), the plat
 
 The codebase enforces strict separation of concerns, partitioning the blockchain engine into isolated, translation-unit submodules:
 
-```text
 ALU_Blockchain_Project/
 ├── main.c                      # Core Shell Orchestrator & CLI Loop
 ├── Makefile                    # Multi-Target Compiling Pipeline
