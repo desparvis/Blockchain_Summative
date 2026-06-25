@@ -7,12 +7,14 @@
 #include "../models/account.h"
 #include "../models/utxo.h"
 
+
 // In-memory states
 Block blockchain[MAX_CHAIN_SIZE];
 MempoolEntry mempool[MAX_MEMPOOL_SIZE];
-
-static int chain_height = 0;
-static int mempool_count = 0;
+MempoolEntry fraud_review_pool[50];
+int fraud_pool_count = 0;
+int chain_height = 0;
+int mempool_count = 0;
 static ChainState global_state;
 
 // Internal helper to calculate block header hash
@@ -205,6 +207,71 @@ int mine_solo(const char *miner_address) {
     }
 
     return 1;
+}
+
+// Pool mining added
+
+int mine_pool(unsigned int miner_count, char miners[][65], double *shares) {
+    if (mempool_count == 0) {
+        printf("Mining rejected: Mempool empty.\n");
+        return 0;
+    }
+
+    // Run the same block setup as solo mining...
+    Block next_block;
+    next_block.block_id = chain_height;
+    next_block.timestamp = time(NULL);
+    strcpy(next_block.previous_hash, "MOCK_PREV_HASH");
+    next_block.difficulty = global_state.current_difficulty;
+
+    // Pull transactions up to MAX_TX_IN_BLOCK
+    unsigned int tx_idx = 0;
+    for (int i = 0; i < mempool_count && tx_idx < MAX_TX_IN_BLOCK; i++) {
+        Transaction core_tx;
+        strncpy(core_tx.transaction_id, mempool[i].transaction_id, HASH_LEN);
+        strncpy(core_tx.sender_address, mempool[i].sender, ADDR_LEN);
+        strncpy(core_tx.receiver_address, mempool[i].receiver, ADDR_LEN);
+        core_tx.amount = mempool[i].amount;
+        core_tx.transaction_type = mempool[i].transaction_type;
+        next_block.transactions[tx_idx++] = core_tx;
+    }
+    next_block.transaction_count = tx_idx;
+    strcpy(next_block.merkle_root, "MOCK_ROOT");
+    next_block.nonce = 42; // Found nonce simulation
+
+    // DISTRIBUTE REWARDS PROPORTIONALLY
+    printf("\n--- DISTRIBUTING POOL MINING REWARDS (Total: %.2f AHT) ---\n", global_state.block_reward);
+    for (unsigned int i = 0; i < miner_count; i++) {
+        double payout = global_state.block_reward * shares[i];
+        account_register(miners[i], account_get_balance(miners[i]) + payout);
+        printf("Miner [%s] received proportional share (%.1f%%): %.2f AHT\n", miners[i], shares[i]*100, payout);
+    }
+
+    blockchain[chain_height++] = next_block;
+    mempool_count = 0; // Clear processed transactions
+    return 1;
+}
+
+// Tampering injector
+void tamper_force_corrupt(unsigned int block_id) {
+    if (block_id >= (unsigned int)chain_height) {
+        printf("Error: Block ID out of range.\n");
+        return;
+    }
+    // Explicitly corrupt transaction values to trigger validation alerts
+    blockchain[block_id].transactions[0].amount = 999999.0;
+    printf("CRITICAL: Block #%u data has been secretly modified in memory!\n", block_id);
+}
+
+// Fraud Handling Engine
+void view_fraud_flags() {
+    printf("\n====== FRAUD REVIEW WORKFLOW QUEUE ======\n");
+    for (int i = 0; i < fraud_pool_count; i++) {
+        printf("[SUSPICIOUS] TxID: %s | Sender: %s | Amount: %.2f AHT\n",
+               fraud_review_pool[i].transaction_id, fraud_review_pool[i].sender, fraud_review_pool[i].amount);
+    }
+    if (fraud_pool_count == 0) printf("Clean system: 0 fraud flags flagged.\n");
+    printf("==========================================\n");
 }
 
 int blockchain_verify() {

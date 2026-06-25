@@ -3,8 +3,9 @@
 #include <string.h>
 #include "policy.h"
 
+
 Policy policy_registry[MAX_POLICIES];
-static int total_policies = 0;
+int total_policies = 0;
 
 int policy_enroll(const char *member_id, const char *policy_id, const char *plan) {
     if (total_policies >= MAX_POLICIES) return 0;

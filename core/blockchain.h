@@ -28,4 +28,17 @@ void blockchain_display();
 // Comprehensive validation and tamper detection audit of the entire chain
 int blockchain_verify();
 
+// Pool mining
+int mine_pool(unsigned int miner_count, char miners[][65], double *shares);
+
+
+// Tampering
+void tamper_force_corrupt(unsigned int block_id);
+
+// Fraud logs
+void view_fraud_flags();
+
+// Resolve
+int admin_resolve_fraud(const char *tx_id, int approve);
+
 #endif // BLOCKCHAIN_H

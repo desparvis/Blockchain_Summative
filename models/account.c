@@ -3,9 +3,10 @@
 #include <string.h>
 #include "account.h"
 
+
 // In-memory global state storage for balances and nonces
 Account account_state_pool[MAX_ACCOUNTS];
-static int total_accounts_count = 0;
+int total_accounts_count = 0;
 
 // Hardcoded addresses for our 5 mandatory internal tracking wallets
 const char* WALLET_INSURANCE_POOL = "ALU_INSURANCE_POOL_WALLET_ADDRESS";

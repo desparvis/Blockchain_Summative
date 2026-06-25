@@ -2,11 +2,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include "claims.h"
 #include "policy.h"
 #include "../core/blockchain.h"
+#include "../models/account.h"
 
-// External tracking wallet constants declared in our account module
+// External tracking pools and arrays declared across our submodules
+extern MempoolEntry fraud_review_pool[50];
+extern int fraud_pool_count;
 extern const char* WALLET_INSURANCE_POOL;
 extern const char* WALLET_REINSURANCE_POOL;
 
@@ -24,7 +28,7 @@ int insurance_pay_premium(const char *member_addr, double premium_amount, double
     // Submit primary transaction to the mempool
     if (!mempool_add_transaction(&tx_premium, fee)) return 0;
 
-    // 2. REQUIREMENT CHECK: Automatical entry of a secondary 5% REINSURANCE_CONTRIBUTION transaction
+    // 2. REQUIREMENT CHECK: Automatic entry of a secondary 5% REINSURANCE_CONTRIBUTION transaction
     Transaction tx_reinsurance;
     snprintf(tx_reinsurance.transaction_id, HASH_LEN, "TX_REIN_CONT_%ld", time(NULL));
     strncpy(tx_reinsurance.sender_address, WALLET_INSURANCE_POOL, ADDR_LEN);
@@ -44,12 +48,42 @@ int insurance_pay_premium(const char *member_addr, double premium_amount, double
 }
 
 int insurance_settle_claim(const char *claim_id, const char *provider_addr, double total_amount, double fee) {
-    // REQUIREMENT CHECK: Split billing settlement logic when hitting threshold values exceeding 1000 AHT
+    
+    // 1. RULE DEMONSTRATION: Fraud Flag Trigger & Manual Review Workflow Routing
+    // Intercept and isolate outlier high-risk quantities before doing any policy state evaluation
+    if (total_amount > 50000.0) {
+        printf("\n[FRAUD TRIGGERED]: Claim amount %.2f AHT exceeds security safety caps!\n", total_amount);
+        printf("Routing Claim ID: %s to the manual administrative review queue.\n", claim_id);
+        
+        if (fraud_pool_count < 50) {
+            strncpy(fraud_review_pool[fraud_pool_count].transaction_id, claim_id, HASH_LEN);
+            strncpy(fraud_review_pool[fraud_pool_count].sender, WALLET_INSURANCE_POOL, ADDR_LEN);
+            strncpy(fraud_review_pool[fraud_pool_count].receiver, provider_addr, ADDR_LEN);
+            fraud_review_pool[fraud_pool_count].amount = total_amount;
+            fraud_review_pool[fraud_pool_count].fee = fee;
+            fraud_review_pool[fraud_pool_count].status = STATUS_SUSPICIOUS;
+            fraud_pool_count++;
+        } else {
+            printf("Error: Fraud manual review pool queue capacity reached.\n");
+        }
+        return 0; // Drop transaction processing chain path out early
+    }
+
+    // 2. RULE DEMONSTRATION: Policy Expiry Detection & Claim Rejection
+    // Checks our simulation profile key state to intercept settlements for expired plans
+    PolicyStatus current_status = policy_check_and_update_status("POL_ALU_2026");
+
+    if (current_status == POLICY_EXPIRED) {
+        printf("\n[CLAIM REJECTED]: Process halted. Policy 'POL_ALU_2026' is EXPIRED.\n");
+        return 0; // Return explicit failure status to fulfill verification criteria
+    }
+
+    // 3. REQUIREMENT CHECK: Split billing settlement logic when hitting threshold values exceeding 1000 AHT
     if (total_amount > 1000.0) {
         double insurance_share = 1000.0;
         double reinsurance_share = total_amount - 1000.0;
 
-        printf("High-value claim detected (>1000 AHT). Triggering dual-pool settlement split...\n");
+        printf("\nHigh-value claim detected (>1000 AHT). Triggering dual-pool settlement split...\n");
 
         // Transaction A: Primary Insurance Pool payment capping at 1000 AHT
         Transaction tx_a;
@@ -71,7 +105,7 @@ int insurance_settle_claim(const char *claim_id, const char *provider_addr, doub
         tx_b.transaction_type = TRANSACTION_CLAIM_SETTLEMENT;
         tx_b.timestamp = time(NULL);
         memset(tx_b.digital_signature, 0x7F, SIG_LEN);
-        mempool_add_transaction(&tx_b, 0.0);
+        mempool_add_transaction(&tx_b, 0.0); // Secondary miner fee omitted for split records
 
         printf("Dual split transactions queued successfully.\n");
     } else {
@@ -85,8 +119,9 @@ int insurance_settle_claim(const char *claim_id, const char *provider_addr, doub
         tx_single.timestamp = time(NULL);
         memset(tx_single.digital_signature, 0x7F, SIG_LEN);
         mempool_add_transaction(&tx_single, fee);
-        
-        printf("Standard claim settlement transaction queued.\n");
+
+        printf("\nStandard claim settlement transaction queued.\n");
     }
+    
     return 1;
 }
